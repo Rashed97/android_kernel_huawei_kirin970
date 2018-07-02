@@ -318,6 +318,14 @@ static void __drop_largest_extent(struct inode *inode,
 	}
 }
 
+void f2fs_drop_largest_extent(struct inode *inode, pgoff_t fofs)
+{
+	if (!f2fs_may_extent_tree(inode))
+		return;
+
+	__drop_largest_extent(inode, fofs, 1);
+}
+
 /* return true, if inode page is changed */
 static bool __f2fs_init_extent_tree(struct inode *inode, struct f2fs_extent *i_ext)
 {
