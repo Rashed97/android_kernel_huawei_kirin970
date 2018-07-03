@@ -688,21 +688,8 @@ static int dw_mci_idmac_init(struct dw_mci *host)
 		host->ring_size = host->desc_sz * PAGE_SIZE / sizeof(struct idmac_desc);
 
 		/* Forward link the descriptor list */
-		for (i = 0, p = host->sg_cpu; i < host->ring_size - 1;
-								i++, p++) {
-			p->des6 = (host->sg_dma +
-					(sizeof(struct idmac_desc_64addr) *
-							(i + 1))) & 0xffffffff;
-
-			p->des7 = (u64)(host->sg_dma +
-					(sizeof(struct idmac_desc_64addr) *
-							(i + 1))) >> 32;
-			/* Initialize reserved and buffer size fields to "0" */
-			p->des0 = 0;
-			p->des1 = 0;
-			p->des2 = 0;
-			p->des3 = 0;
-		}
+		for (i = 0, p = host->sg_cpu; i < host->ring_size - 1; i++, p++)
+		    p->des3 = host->sg_dma + (sizeof(struct idmac_desc) * (i + 1));
 
 		/* Set the last descriptor as the end-of-ring descriptor */
 		p->des3 = host->sg_dma;
@@ -727,12 +714,11 @@ static int dw_mci_idmac_init(struct dw_mci *host)
 		host->ring_size = host->desc_sz * PAGE_SIZE / sizeof(struct idmac_desc_64bit);
 
 		/* Forward link the descriptor list */
-		for (i = 0, p = host->sg_cpu;
-		     i < host->ring_size - 1;
-		     i++, p++) {
-			p->des3 = cpu_to_le32(host->sg_dma +
-					(sizeof(struct idmac_desc) * (i + 1)));
-			p->des0 = 0;
+
+		for (i = 0, p = host->sg_cpu; i < host->ring_size - 1; i++, p++) {
+			p->des6 = (host->sg_dma + (sizeof(struct idmac_desc_64bit) * (i + 1)))& 0xffffffff;
+			p->des7 = (host->sg_dma + (sizeof(struct idmac_desc_64bit) * (i + 1)))>> 32;
+
 			p->des1 = 0;
 			p->des2 = 0;
 			p->des3 = 0;
@@ -3219,8 +3205,8 @@ static bool dw_mci_reset(struct dw_mci *host)
 	}
 
 	if (host->use_dma == TRANS_MODE_IDMAC)
-		/* It is also required that we reinit idmac */
-		dw_mci_idmac_init(host);
+		/* It is also recommended that we reset and reprogram idmac */
+		dw_mci_idmac_reset(host);
 
 	ret = true;
 
